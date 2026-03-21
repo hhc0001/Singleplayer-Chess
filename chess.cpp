@@ -7,9 +7,8 @@
  * - due to lack of time, didn't make O-O(-O) and promotion.
  * - many bugs intended.
  * v1 patch 1
- * - fixed a bug where pawns can move 2 blocks forward wo capture.
- * - fixed a bug where rook can move left.
- * - fixed a bug where the PGN goes inersed in rows.
+ * - fixed a bug where pawns can move 2 blocks forward+capture.
+ * - fixed a bug where the PGN goes inversed in rows.
  * v1.1 - Castle and Promote
  * - Added O-O.
  * - Added promotion(still no en passant).
