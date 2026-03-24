@@ -2,17 +2,17 @@
 // Invite your friends to have matches with each other!
 /**
  * Embedded changelog:
- * v1 - Intital Software
+ * v0 - Intital Software
  * - finished basic movements.
  * - due to lack of time, didn't make O-O(-O) and promotion.
  * - many bugs intended.
- * v1 patch 1
+ * v0 patch 1
  * - fixed a bug where pawns can move 2 blocks forward+capture.
  * - fixed a bug where the PGN goes inversed in rows.
- * v1.1 - Castle and Promote
+ * v0.1 - Castle and Promote
  * - Added O-O.
  * - Added promotion(still no en passant).
- * v1.2 - Finally, chess!
+ * v1 - Finally, chess!
  * - Added en passant.
  * - Normal chess complete!
  */
