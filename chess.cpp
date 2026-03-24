@@ -1,4 +1,4 @@
-// Singleplayer Chess v1.2
+// Singleplayer Chess v1
 // Invite your friends to have matches with each other!
 /**
  * Embedded changelog:
