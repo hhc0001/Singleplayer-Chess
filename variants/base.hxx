@@ -24,7 +24,7 @@ namespace base {
     char type;
     int moved;
     int belong;
-  }board[8][8];
+  }board[8][8], tboard[8][8];
   
   int currentMove = 1;
   std::vector<std::string> game;
@@ -56,6 +56,17 @@ namespace base {
       a << '.';
     }
     return a;
+  }
+  
+  void save() {
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) tboard[i][j] = board[i][j];
+    }
+  }
+  void revert() {
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) board[i][j] = tboard[i][j];
+    }
   }
   
   void print() {

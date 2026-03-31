@@ -18,9 +18,29 @@
 using namespace base;
 using std::min, std::max, std::swap;
 
-#ifndef STANDARD_BASE
-#define STANDARD_BASE
-namespace standardBase {
+#ifndef CRAZYHOUSE_BASE
+#define CRAZYHOUSE_BASE
+namespace crazyhouseBase {
+  int whitePocket[5], blackPocket[5], typeMap[5] = {'P', 'N', 'B', 'R', 'Q'};
+  
+  int transIndex(char c) {
+    switch(c) {
+    case 'P':
+      return 0;
+    case 'N':
+      return 1;
+    case 'B':
+      return 2;
+    case 'R':
+      return 3;
+    case 'Q':
+      return 4;
+    default:
+      return -1;
+    }
+    return -1;
+  }
+  
   void init() {
     for(int i = 0; i < 8; i++) board[0][i] = {baseRow[i], 0, -1}, board[1][i] = {'P', 0, -1}, board[6][i] = {'P', 0, 1}, board[7][i] = {baseRow[i], 0, 1};
     save();
@@ -156,7 +176,9 @@ namespace standardBase {
     return f;
   }
   
-  void capture(int startX, int startY, int endX, int endY) {
+  void capture(int startX, int startY, int endX, int endY, int source, int multiplier = 1) {
+    if(source == 1) whitePocket[transIndex(board[endX][endY].type)] += multiplier;
+    else blackPocket[transIndex(board[endX][endY].type)] += multiplier;
     board[endX][endY] = {'\0', 0, 0};
   }
   
@@ -177,9 +199,9 @@ namespace standardBase {
       if(board[startX][startY].type == 'P'
          && !board[endX][endY].belong
          && board[endX - currentMove][endY].belong != board[startX][startY].belong
-         && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX + currentMove, endY);
+         && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX + currentMove, endY, currentMove, 0);
       if(board[endX][endY].belong || passant) {
-        if(board[endX][endY].belong) capture(startX, startY, endX, endY);
+        if(board[endX][endY].belong) capture(startX, startY, endX, endY, currentMove, 0);
       }
       if(board[endX][endY].type == 'P' && endY == startY && abs(endX - startX) == 2) board[endX][endY].moved = 2;
       board[endX][endY] = board[startX][startY];
@@ -223,6 +245,19 @@ namespace standardBase {
       revert();
     }
     return f;
+  }
+  
+  bool checkPlace(int x, int y, char type) {
+    if(type == 'P' && (x == 0 || x == 7)) return 0;
+    if(board[x][y].belong) return 0;
+    if(currentMove == 1) return whitePocket[transIndex(type)];
+    else return blackPocket[transIndex(type)];
+  }
+  
+  void _place(int x, int y, char type) {
+    if(!checkPlace(x, y, type)) return ;
+    pass();
+    board[x][y] = {type, 1, currentMove};
   }
 }
 #endif

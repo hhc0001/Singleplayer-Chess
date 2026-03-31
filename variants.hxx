@@ -15,11 +15,15 @@
 #include <iostream>
 #include "variants/base.hxx"
 #include "variants/standard.hxx"
+#include "variants/crazyhouse.hxx"
+#include "variants/atomic.hxx"
 #include <windows.h>
 #include <conio.h>
 #define KEY_DOWN(VK) ((GetAsyncKeyState(VK) & 0x8000) ? 1 : 0)
 
-namespace standard {
+#ifndef VARIANTS
+#define VARIANTS
+namespace standardX {
   using namespace standardBase;
   
   bool checkMate() {
@@ -31,13 +35,9 @@ namespace standard {
           for(int k = 0; k < 8; k++) {
             for(int l = 0; l < 8; l++) {
               if(checkMove(i, j, k, l) && board[i][j].belong == tmp) {
-                piece tmp = board[k][l], ttmp = board[i][j];
-                board[k][l] = board[i][j];
-                board[k][l].moved = 1;
-                board[i][j] = {'\0', 0, 0};
+                _move(i, j, k, l);
                 bool f = !check();
-                board[i][j] = board[k][l];
-                board[k][l] = tmp;
+                revert();
                 if(f) return 0;
               }
             }
@@ -45,7 +45,6 @@ namespace standard {
         }
       }
     }
-    std::cout << "wtf" << '\n';
     return 1;
   }
   
@@ -80,8 +79,243 @@ namespace standard {
     return board[x][y].type;
   }
   
-  void capture(int startX, int startY, int endX, int endY) {
-    board[endX][endY] = {'\0', 0, 0};
+  void move(int startX, int startY, int endX, int endY) {
+    if(!checkMove(startX, startY, endX, endY)) return ;
+    currentMove *= -1;
+    std::string result = "";
+    pass();
+    if(board[startX][startY].type == 'K' && startX == endX && abs(startY - endY) == 2) {
+      if(startY > endY) {
+        board[endX][endY] = board[startX][startY], board[endX][endY + 1] = board[7 * (currentMove == -1)][0];
+        board[startX][startY] = board[7 * (currentMove == -1)][0] = {'\0', 0, 0};
+        board[endX][endY].moved = board[endX][endY + 1].moved = 1;
+        result = "O-O-O";
+      }else {
+        board[endX][endY] = board[startX][startY], board[endX][endY - 1] = board[7 * (currentMove == -1)][7];
+        board[startX][startY] = board[7 * (currentMove == -1)][7] = {'\0', 0, 0};
+        board[endX][endY].moved = board[endX][endY - 1].moved = 1;
+        result = "O-O";
+      }
+    }else {
+      bool passant = 0;
+      if(board[startX][startY].type == 'P'
+         && !board[endX][endY].belong
+         && board[endX - currentMove][endY].belong != board[startX][startY].belong
+         && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX - currentMove, endY);
+      if(board[startX][startY].type != 'P') result += board[startX][startY].type;
+      if(board[endX][endY].belong || passant) {
+        if(board[endX][endY].belong) capture(startX, startY, endX, endY);
+        result += 'x';
+      }
+      result += char(endY + 'a');
+      result += char(8 - endX + '0');
+      board[endX][endY] = board[startX][startY];
+      board[startX][startY] = {'\0', 0, 0};
+      board[endX][endY].moved = 1;
+      if(board[endX][endY].type == 'P' && endY == startY && abs(endX - startX) == 2) board[endX][endY].moved = 2;
+      save();
+      if(checkMate()) result += '#';
+      else if(staleMate()) result += '@';
+      else if(check()) result += '+';
+      if(board[endX][endY].type == 'P' && (board[endX][endY].belong > 0 && !endX) || (board[endX][endY].belong < 0 && endX == 7)) result += promote(endX, endY);
+    }
+    game.push_back(result);
+  }
+}
+namespace crazyhouseX {
+  using namespace crazyhouseBase;
+  
+  bool checkMate() {
+    if(!check()) return 0;
+    int tmp = check(), startX = -1, startY = -1;
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(board[i][j].belong) {
+          for(int k = 0; k < 8; k++) {
+            for(int l = 0; l < 8; l++) {
+              if(checkMove(i, j, k, l) && board[i][j].belong == tmp) {
+                _move(i, j, k, l);
+                bool f = !check();
+                revert();
+                if(f) return 0;
+              }
+            }
+          }
+        }
+      }
+    }
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(!board[i][j].belong) {
+          for(int k = 0; k < 5; k++) {
+            if(checkPlace(i, j, typeMap[k])) {
+              _place(i, j, typeMap[k]);
+              bool f = !check();
+              revert();
+              if(f) return 0;
+            }
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  
+  bool staleMate() {
+    if(check()) return 0;
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(board[i][j].belong) {
+          for(int k = 0; k < 8; k++) {
+            for(int l = 0; l < 8; l++) {
+              if(checkMove(i, j, k, l) && board[i][j].belong == currentMove) return 0;
+            }
+          }
+        }
+      }
+    }
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(!board[i][j].belong) {
+          for(int k = 0; k < 5; k++) {
+            if(checkPlace(i, j, typeMap[k])) return 0;
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  
+  char promote(int x, int y) {
+    std::cout << "Choose the piece that the pawn is going to be promote to: ";
+    while(1) {
+      bool f = 0;
+      if(KEY_DOWN('N')) board[x][y].type = 'N';
+      else if(KEY_DOWN('B')) board[x][y].type = 'B';
+      else if(KEY_DOWN('R')) board[x][y].type = 'R';
+      else if(KEY_DOWN('Q')) board[x][y].type = 'Q';
+      else f = 1;
+      Sleep(50);
+      if(!f) break;
+    }
+    return board[x][y].type;
+  }
+  
+  void move(int startX, int startY, int endX, int endY) {
+    if(!checkMove(startX, startY, endX, endY)) return ;
+    currentMove *= -1;
+    std::string result = "";
+    pass();
+    if(board[startX][startY].type == 'K' && startX == endX && abs(startY - endY) == 2) {
+      if(startY > endY) {
+        board[endX][endY] = board[startX][startY], board[endX][endY + 1] = board[7 * (currentMove == -1)][0];
+        board[startX][startY] = board[7 * (currentMove == -1)][0] = {'\0', 0, 0};
+        board[endX][endY].moved = board[endX][endY + 1].moved = 1;
+        result = "O-O-O";
+      }else {
+        board[endX][endY] = board[startX][startY], board[endX][endY - 1] = board[7 * (currentMove == -1)][7];
+        board[startX][startY] = board[7 * (currentMove == -1)][7] = {'\0', 0, 0};
+        board[endX][endY].moved = board[endX][endY - 1].moved = 1;
+        result = "O-O";
+      }
+    }else {
+      bool passant = 0;
+      if(board[startX][startY].type == 'P'
+         && !board[endX][endY].belong
+         && board[endX - currentMove][endY].belong != board[startX][startY].belong
+         && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX - currentMove, endY, -currentMove);
+      if(board[startX][startY].type != 'P') result += board[startX][startY].type;
+      if(board[endX][endY].belong || passant) {
+        if(board[endX][endY].belong) capture(startX, startY, endX, endY, -currentMove);
+        result += 'x';
+      }
+      result += char(endY + 'a');
+      result += char(8 - endX + '0');
+      board[endX][endY] = board[startX][startY];
+      board[startX][startY] = {'\0', 0, 0};
+      board[endX][endY].moved = 1;
+      if(board[endX][endY].type == 'P' && endY == startY && abs(endX - startX) == 2) board[endX][endY].moved = 2;
+      save();
+      if(checkMate()) result += '#';
+      else if(staleMate()) result += '@';
+      else if(check()) result += '+';
+      if(board[endX][endY].type == 'P' && (board[endX][endY].belong > 0 && !endX) || (board[endX][endY].belong < 0 && endX == 7)) result += promote(endX, endY);
+    }
+    game.push_back(result);
+  }
+  
+  void place(int x, int y, char type) {
+    if(currentMove == 1) whitePocket[transIndex(type)]--;
+    else blackPocket[transIndex(type)]--;
+    currentMove *= -1;
+    std::string result = "";
+    pass();
+    if(type != 'P') result += type;
+    result += '@';
+    result += char(y + 'a');
+    result += char(8 - x + '0');
+    board[x][y] = {type, 1, -currentMove};
+    save();
+    if(checkMate()) result += '#';
+    else if(staleMate()) result += '@';
+    else if(check()) result += '+';
+    game.push_back(result);
+  }
+}
+namespace atomicX {
+  using namespace atomicBase;
+  
+  bool checkMate() {
+    if(!check()) return 0;
+    int tmp = check(), startX = -1, startY = -1;
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(board[i][j].belong) {
+          for(int k = 0; k < 8; k++) {
+            for(int l = 0; l < 8; l++) {
+              if(checkMove(i, j, k, l) && board[i][j].belong == tmp) {
+                _move(i, j, k, l);
+                bool f = !check();
+                revert();
+                if(f) return 0;
+              }
+            }
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  
+  bool staleMate() {
+    if(check()) return 0;
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(board[i][j].belong) {
+          for(int k = 0; k < 8; k++) {
+            for(int l = 0; l < 8; l++) {
+              if(checkMove(i, j, k, l) && board[i][j].belong == currentMove) return 0;
+            }
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  
+  char promote(int x, int y) {
+    std::cout << "Choose the piece that the pawn is going to be promote to: ";
+    while(1) {
+      bool f = 0;
+      if(KEY_DOWN('N')) board[x][y].type = 'N';
+      else if(KEY_DOWN('B')) board[x][y].type = 'B';
+      else if(KEY_DOWN('R')) board[x][y].type = 'R';
+      else if(KEY_DOWN('Q')) board[x][y].type = 'Q';
+      else f = 1;
+      Sleep(50);
+      if(!f) break;
+    }
+    return board[x][y].type;
   }
   
   void move(int startX, int startY, int endX, int endY) {
@@ -104,9 +338,9 @@ namespace standard {
     }else {
       bool passant = 0;
       if(board[startX][startY].type == 'P'
-      && !board[endX][endY].belong
-      && board[endX - currentMove][endY].belong != board[startX][startY].belong
-      && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX - currentMove, endY);
+         && !board[endX][endY].belong
+         && board[endX - currentMove][endY].belong != board[startX][startY].belong
+         && endX == startX + currentMove && abs(startY - endY) == 1) passant = 1, capture(startX, startY, endX - currentMove, endY);
       if(board[startX][startY].type != 'P') result += board[startX][startY].type;
       if(board[endX][endY].belong || passant) {
         if(board[endX][endY].belong) capture(startX, startY, endX, endY);
@@ -117,9 +351,10 @@ namespace standard {
       board[endX][endY] = board[startX][startY];
       board[startX][startY] = {'\0', 0, 0};
       board[endX][endY].moved = 1;
-      if(board[endX][endY].type == 'P' && endY == startY && abs(endX - startX) == 2) {
-        board[endX][endY].moved = 2; // en passant avaliable
-      }
+      save();
+      /*
+      if(board[endX][endY].type == 'P' && endY == startY && abs(endX - startX) == 2) { board[endX][endY].moved = 2;}
+      //*/
       if(checkMate()) result += '#';
       else if(staleMate()) result += '@';
       else if(check()) result += '+';
@@ -128,3 +363,4 @@ namespace standard {
     game.push_back(result);
   }
 }
+#endif

@@ -18,9 +18,9 @@
 using namespace base;
 using std::min, std::max, std::swap;
 
-#ifndef STANDARD_BASE
-#define STANDARD_BASE
-namespace standardBase {
+#ifndef ATOMIC_BASE
+#define ATOMIC_BASE
+namespace atomicBase {
   void init() {
     for(int i = 0; i < 8; i++) board[0][i] = {baseRow[i], 0, -1}, board[1][i] = {'P', 0, -1}, board[6][i] = {'P', 0, 1}, board[7][i] = {baseRow[i], 0, 1};
     save();
@@ -90,7 +90,25 @@ namespace standardBase {
     return 0;
   }
   
+  int vanish() {
+    int result = 3;
+    for(int i = 0; i < 8; i++) {
+      for(int j = 0; j < 8; j++) {
+        if(board[i][j].type == 'K') {
+          result -= (board[i][j].belong == 1) * 2 + (board[i][j].belong == -1);
+        }
+      }
+    }
+    return result;
+  }
+  
   int check(int initial = currentMove) {
+    if(vanish()) {
+      int tmp = vanish();
+      if(tmp == 3) return initial;
+      else if(tmp == 2) return 1;
+      else return -1;
+    }
     bool fW = 0, fB = 0;
     for(int i = 0; i < 8; i++) {
       for(int j = 0; j < 8; j++) {
@@ -157,7 +175,17 @@ namespace standardBase {
   }
   
   void capture(int startX, int startY, int endX, int endY) {
+    board[startX][startY] = {'\0', 0, 0};
+    
+    if(board[endX - 1][endY - 1].type != 'P') board[endX - 1][endY - 1] = {'\0', 0, 0};
+    if(board[endX - 1][endY].type != 'P') board[endX - 1][endY] = {'\0', 0, 0};
+    if(board[endX - 1][endY + 1].type != 'P') board[endX - 1][endY + 1] = {'\0', 0, 0};
+    if(board[endX][endY - 1].type != 'P') board[endX][endY - 1] = {'\0', 0, 0};
     board[endX][endY] = {'\0', 0, 0};
+    if(board[endX][endY - 1].type != 'P') board[endX][endY + 1] = {'\0', 0, 0};
+    if(board[endX + 1][endY - 1].type != 'P') board[endX + 1][endY - 1] = {'\0', 0, 0};
+    if(board[endX + 1][endY].type != 'P') board[endX + 1][endY] = {'\0', 0, 0};
+    if(board[endX + 1][endY + 1].type != 'P') board[endX + 1][endY + 1] = {'\0', 0, 0};
   }
   
   void _move(int startX, int startY, int endX, int endY) {
