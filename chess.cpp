@@ -37,7 +37,7 @@
  * v1.1 patch 1
  * - fixed a bug where checking other's king is not allowed.
  * - fixed a bug where rook can go thru pawns.
- * v2
+ * v2 - Power of Communist
  * - added the main screen(yes, I delayed the development of it until now, because chess with only 1 variant doesn't need main screen).
  * - added Crazyhouse.
  * - fixed a bug in the checking of en passant.
